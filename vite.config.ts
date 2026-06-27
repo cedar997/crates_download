@@ -3,10 +3,12 @@ import vue from '@vitejs/plugin-vue'
 import { viteSingleFile } from 'vite-plugin-singlefile'
 import { resolve } from 'path'
 
-export default defineConfig({
-  base: './',
+export default defineConfig(({ mode }) => ({
+  // CI: use repo name as base, Dev: relative path
+  base: process.env.BASE || './',
   plugins: [
     vue(),
+    // Enable singlefile for truly portable builds:
     // viteSingleFile(),
   ],
   resolve: {
@@ -36,4 +38,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))
