@@ -20,18 +20,34 @@ const DL_MIRRORS = IS_DEV
       'https://mirrors.tuna.tsinghua.edu.cn/crates.io/crates',
     ]
 
+/** CORS proxy services — tried in order until one works. */
+const CORS_PROXIES = [
+  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+]
+
 /** Fetch with CORS proxy fallback for production (mirrors lack CORS headers). */
 async function smartFetch(url: string): Promise<Response> {
   if (IS_DEV) return fetch(url)
 
-  // Prod: try direct, then CORS proxy
+  // Prod: try direct first (may work with some browser extensions)
   try {
     const res = await fetch(url)
     if (res.ok) return res
-  } catch { /* CORS blocked */ }
+  } catch { /* CORS blocked, try proxies */ }
 
-  // corsproxy.io — works from any origin
-  return fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`)
+  // Try each CORS proxy
+  for (const proxyFn of CORS_PROXIES) {
+    try {
+      const proxyUrl = proxyFn(url)
+      console.log('[smartFetch] trying:', proxyUrl.slice(0, 80))
+      const res = await fetch(proxyUrl)
+      if (res.ok) return res
+    } catch { /* next proxy */ }
+  }
+
+  throw new Error('所有下载方式均失败（直连+CORS代理均不可达）')
 }
 
 export interface DepTreeNode {
