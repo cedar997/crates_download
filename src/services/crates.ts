@@ -6,49 +6,9 @@
  * No crates.io API needed.
  */
 
-// Dev (localhost) → Vite proxy. Prod → direct URLs with CORS proxy fallback.
-const IS_DEV = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-
-const INDEX_BASE = IS_DEV
-  ? '/crates-index'
-  : 'https://mirrors.ustc.edu.cn/crates.io-index'
-
-const DL_MIRRORS = IS_DEV
-  ? ['/crates-dl', '/crates-dl2']
-  : [
-      'https://mirrors.ustc.edu.cn/crates.io/crates',
-      'https://mirrors.tuna.tsinghua.edu.cn/crates.io/crates',
-    ]
-
-/** CORS proxy services — tried in order until one works. */
-const CORS_PROXIES = [
-  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-]
-
-/** Fetch with CORS proxy fallback for production (mirrors lack CORS headers). */
-async function smartFetch(url: string): Promise<Response> {
-  if (IS_DEV) return fetch(url)
-
-  // Prod: try direct first (may work with some browser extensions)
-  try {
-    const res = await fetch(url)
-    if (res.ok) return res
-  } catch { /* CORS blocked, try proxies */ }
-
-  // Try each CORS proxy
-  for (const proxyFn of CORS_PROXIES) {
-    try {
-      const proxyUrl = proxyFn(url)
-      console.log('[smartFetch] trying:', proxyUrl.slice(0, 80))
-      const res = await fetch(proxyUrl)
-      if (res.ok) return res
-    } catch { /* next proxy */ }
-  }
-
-  throw new Error('所有下载方式均失败（直连+CORS代理均不可达）')
-}
+// Relative paths — Vite dev server & Vercel both proxy these server-side
+const INDEX_BASE = '/crates-index'
+const DL_MIRRORS = ['/crates-dl', '/crates-dl2']
 
 export interface DepTreeNode {
   name: string
@@ -111,7 +71,7 @@ async function fetchIndex(name: string): Promise<IndexEntry[]> {
   const path = indexPath(name)
   const url = `${INDEX_BASE}/${path}`
 
-  const res = await smartFetch(url)
+  const res = await fetch(url)
   if (!res.ok) {
     throw new Error(`索引不存在: ${name}`)
   }
@@ -431,7 +391,7 @@ function downloadUrl(name: string, version: string, mirrorIdx: number): string {
 
 async function tryDownloadUrl(url: string): Promise<ArrayBuffer | null> {
   try {
-    const res = await smartFetch(url)
+    const res = await fetch(url)
     if (res.ok) return res.arrayBuffer()
     return null
   } catch {

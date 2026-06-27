@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/crates-index/:path*", "destination": "https://mirrors.ustc.edu.cn/crates.io-index/:path*" },
+    { "source": "/crates-dl/:path*", "destination": "https://mirrors.ustc.edu.cn/crates.io/crates/:path*" },
+    { "source": "/crates-dl2/:path*", "destination": "https://mirrors.tuna.tsinghua.edu.cn/crates.io/crates/:path*" }
+  ]
+}

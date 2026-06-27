@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import type { DepTreeNode } from '@/services/crates'
 import CrateSearch from '@/components/CrateSearch.vue'
 import DependencyList from '@/components/DependencyList.vue'
@@ -8,11 +8,6 @@ import DownloadPack from '@/components/DownloadPack.vue'
 const crateName = ref('')
 const crateVersion = ref('')
 const searched = ref(false)
-const isDev = ref(true)
-
-onMounted(() => {
-  isDev.value = window.location.hostname === 'localhost'
-})
 const packages = ref<DepTreeNode[]>([])
 
 function handleSearch(name: string, version: string) {
@@ -38,10 +33,6 @@ function handleCacheUpdated() {
     </header>
 
     <main class="app-main">
-      <div v-if="!isDev" class="prod-notice">
-        🌐 已部署模式：通过 CORS 代理访问镜像，速度可能较慢。<br>
-        本地使用请运行 <code>pnpm dev</code> 获得最佳体验。
-      </div>
       <CrateSearch @search="handleSearch" />
 
       <template v-if="searched && crateName">
@@ -149,22 +140,6 @@ a:hover {
   flex: 1;
 }
 
-.prod-notice {
-  background: #fbbf2422;
-  border: 1px solid #f59e0b;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  color: #fbbf24;
-  line-height: 1.7;
-}
-.prod-notice code {
-  background: #0f172a;
-  padding: 1px 6px;
-  border-radius: 3px;
-  color: #f59e0b;
-}
 
 .welcome {
   text-align: center;
