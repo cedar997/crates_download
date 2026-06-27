@@ -6,19 +6,33 @@
  * No crates.io API needed.
  */
 
-// Dev: use Vite proxy (same-origin). Prod: direct URLs.
-const IS_FILE = typeof window !== 'undefined' && window.location.protocol === 'file:'
+// Dev (localhost) → Vite proxy. Prod → direct URLs with CORS proxy fallback.
+const IS_DEV = typeof window !== 'undefined' && window.location.hostname === 'localhost'
 
-const INDEX_BASE = IS_FILE
-  ? 'https://mirrors.ustc.edu.cn/crates.io-index'
-  : '/crates-index'
+const INDEX_BASE = IS_DEV
+  ? '/crates-index'
+  : 'https://mirrors.ustc.edu.cn/crates.io-index'
 
-const DL_MIRRORS = IS_FILE
-  ? [
+const DL_MIRRORS = IS_DEV
+  ? ['/crates-dl', '/crates-dl2']
+  : [
       'https://mirrors.ustc.edu.cn/crates.io/crates',
       'https://mirrors.tuna.tsinghua.edu.cn/crates.io/crates',
     ]
-  : ['/crates-dl', '/crates-dl2']
+
+/** Fetch with CORS proxy fallback for production (mirrors lack CORS headers). */
+async function smartFetch(url: string): Promise<Response> {
+  if (IS_DEV) return fetch(url)
+
+  // Prod: try direct, then CORS proxy
+  try {
+    const res = await fetch(url)
+    if (res.ok) return res
+  } catch { /* CORS blocked */ }
+
+  // corsproxy.io — works from any origin
+  return fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`)
+}
 
 export interface DepTreeNode {
   name: string
@@ -81,7 +95,7 @@ async function fetchIndex(name: string): Promise<IndexEntry[]> {
   const path = indexPath(name)
   const url = `${INDEX_BASE}/${path}`
 
-  const res = await fetch(url)
+  const res = await smartFetch(url)
   if (!res.ok) {
     throw new Error(`索引不存在: ${name}`)
   }
@@ -401,7 +415,7 @@ function downloadUrl(name: string, version: string, mirrorIdx: number): string {
 
 async function tryDownloadUrl(url: string): Promise<ArrayBuffer | null> {
   try {
-    const res = await fetch(url)
+    const res = await smartFetch(url)
     if (res.ok) return res.arrayBuffer()
     return null
   } catch {

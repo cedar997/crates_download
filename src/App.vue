@@ -8,10 +8,10 @@ import DownloadPack from '@/components/DownloadPack.vue'
 const crateName = ref('')
 const crateVersion = ref('')
 const searched = ref(false)
-const isFileProtocol = ref(false)
+const isDev = ref(true)
 
 onMounted(() => {
-  isFileProtocol.value = window.location.protocol === 'file:'
+  isDev.value = window.location.hostname === 'localhost'
 })
 const packages = ref<DepTreeNode[]>([])
 
@@ -38,9 +38,9 @@ function handleCacheUpdated() {
     </header>
 
     <main class="app-main">
-      <div v-if="isFileProtocol" class="file-warning">
-        ⚠️ 检测到 <code>file://</code> 协议，无法使用 Vite 代理。<br>
-        外部请求会因跨域失败，请改用 <code>pnpm dev</code> 启动开发服务器。
+      <div v-if="!isDev" class="prod-notice">
+        🌐 已部署模式：通过 CORS 代理访问镜像，速度可能较慢。<br>
+        本地使用请运行 <code>pnpm dev</code> 获得最佳体验。
       </div>
       <CrateSearch @search="handleSearch" />
 
@@ -149,7 +149,7 @@ a:hover {
   flex: 1;
 }
 
-.file-warning {
+.prod-notice {
   background: #fbbf2422;
   border: 1px solid #f59e0b;
   border-radius: 8px;
@@ -159,7 +159,7 @@ a:hover {
   color: #fbbf24;
   line-height: 1.7;
 }
-.file-warning code {
+.prod-notice code {
   background: #0f172a;
   padding: 1px 6px;
   border-radius: 3px;
